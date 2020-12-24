@@ -2,12 +2,26 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Utilities;
 
 public class Cell : MonoBehaviour {
+
     public Vector2 currentPos;
 
     [SerializeField]
+    public Sprite shelfImg;
+
+    [SerializeField]
+    Sprite roadImg;
+
+    [SerializeField]
+    public Sprite wallImg;
+
+    [SerializeField]
     public SpriteRenderer _currentSprite;
+
+    [SerializeField]
+    public SpriteRenderer _neiborIMG;
 
     [SerializeField]
     private Text currentIndexShow;
@@ -16,49 +30,81 @@ public class Cell : MonoBehaviour {
 
     public bool isWalkable = true;
 
+    public bool isWall = false;
+
     public static Cell currentCell;
 
-    public void OnSpawn(Vector2 pos, int _gridIndex,bool isWalkable) {
+    public static Cell checkingCell;
+
+    public static Cell prevCell;
+
+    public void OnSpawn(Vector2 pos, int _gridIndex, bool isWalkable, bool isWall) {
         currentPos = pos;
         gridIndex = _gridIndex;
         GridGeneration.onSwitch += OnSwitch;
         GridGeneration.onSwitch.Invoke();
         this.isWalkable = isWalkable;
+        this.isWall = isWall;
 
-       // if (!isWalkable) _currentSprite.color = Color.red;
+        if (isWall) gameObject.tag = "Wall";
+
     }
 
     private void Update() {
-        if (Player.currentPos == currentPos) {
-            SetSpriteColor(Color.yellow);
-          //  currentCell = this;
-        }
-        if (!isWalkable) {
-            SetSpriteColor(Color.red);
-        }
-        else if (isWalkable) SetSpriteColor(Color.white);
+        SetFitSprites();
     }
 
+    private void SetFitSprites() {
+        if (isWall) {
+            _currentSprite.sprite = wallImg;
+        }
+        if (!isWall && !isWalkable) {
+            _currentSprite.sprite = shelfImg;
+        }
+        if (!isWall && isWalkable) {
+            _currentSprite.sprite = roadImg;
+        }
+
+        if (prevCell == this) {
+            _currentSprite.color = Color.green;
+        }
+        else if (prevCell != this || checkingCell != this) {
+            _currentSprite.color = Color.white;
+        }
+
+        if (checkingCell == this) {
+            _currentSprite.color = Color.red;
+        }
+
+    }
 
     public void OnSwitch() {
-         currentCell = this;  
-        /* if (Player.currentPos == currentPos) {
-             SetSpriteColor(Color.yellow);
-             currentCell = this;
-         }
-        else ResetColor();*/
+        currentCell = this;
     }
 
-    public void SetSpriteColor(Color color) {
-        _currentSprite.color = color;
+    public void SetSpriteColor(Sprite sprite) {
+        _currentSprite.sprite = sprite;
     }
 
-    public static void ResetColor() {
-        foreach (var cel in GridGeneration.cells) {
-            if (!(cel == currentCell) && cel.isWalkable ) {
-                cel.SetSpriteColor(Color.white);
-            }
+    public void Checking() {
+        StartCoroutine(CheckingCell());
+    }
+
+
+    IEnumerator CheckingCell() {
+        var neibors = Utils.GetNeighbors(this);
+
+        foreach(var o in neibors) {
+            o._neiborIMG.enabled = true;
+        }
+
+        yield return new WaitForSeconds(0.4f);
+
+        foreach (var o in neibors) {
+            o._neiborIMG.enabled = false;
         }
     }
 
+
 }
+
